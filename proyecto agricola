@@ -1,0 +1,14 @@
+/simulador-maiz
+│
+├── index.html
+├── /css
+│   └── styles.css
+├── /js
+│   ├── modelo.js
+│   ├── graficas.js
+│   └── validacion.js
+├── /docs
+│   ├── marco_teorico.md
+│   └── casos_prueba.md
+├── README.md
+└── LICENSE
