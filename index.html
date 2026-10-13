@@ -1,0 +1,151 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Simulador Marco de Siembra</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f5f5f5;
+    padding:20px;
+}
+
+.contenedor{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    max-width:600px;
+    margin:auto;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+input{
+    width:100%;
+    padding:10px;
+    margin:8px 0;
+    box-sizing:border-box;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    background:green;
+    color:white;
+    border:none;
+    border-radius:5px;
+    font-size:16px;
+}
+
+#resultado{
+    margin-top:15px;
+    font-size:16px;
+}
+
+canvas{
+    margin-top:20px;
+    border:1px solid #000;
+    width:100%;
+}
+</style>
+
+</head>
+<body>
+
+<div class="contenedor">
+
+<h1>Simulador Marco de Siembra</h1>
+
+<input type="number" id="largo" placeholder="Largo del lote (m)">
+
+<input type="number" id="ancho" placeholder="Ancho del lote (m)">
+
+<input type="number" id="plantas" placeholder="Distancia entre plantas (m)">
+
+<input type="number" id="hileras" placeholder="Distancia entre hileras (m)">
+
+<button onclick="calcular()">
+Calcular
+</button>
+
+<div id="resultado"></div>
+
+<canvas id="grafico" width="500" height="300"></canvas>
+
+</div>
+
+<script>
+
+function calcular(){
+
+let largo = parseFloat(document.getElementById("largo").value);
+let ancho = parseFloat(document.getElementById("ancho").value);
+let dp = parseFloat(document.getElementById("plantas").value);
+let dh = parseFloat(document.getElementById("hileras").value);
+
+if(
+    isNaN(largo) ||
+    isNaN(ancho) ||
+    isNaN(dp) ||
+    isNaN(dh)
+){
+    alert("Complete todos los datos");
+    return;
+}
+
+let numHileras = Math.floor(ancho / dh);
+let plantasHilera = Math.floor(largo / dp);
+
+let total = numHileras * plantasHilera;
+
+let area = largo * ancho;
+
+let plantasHectarea = (total / area) * 10000;
+
+document.getElementById("resultado").innerHTML = `
+<b>Hileras:</b> ${numHileras}<br>
+<b>Plantas por hilera:</b> ${plantasHilera}<br>
+<b>Total de plantas:</b> ${total}<br>
+<b>Plantas por hectárea:</b> ${plantasHectarea.toFixed(2)}
+`;
+
+let canvas = document.getElementById("grafico");
+let ctx = canvas.getContext("2d");
+
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+for(let y = 0; y < numHileras; y++){
+
+    for(let x = 0; x < plantasHilera; x++){
+
+        let posX = 20 + (x * 15);
+        let posY = 20 + (y * 15);
+
+        if(posX < canvas.width - 10 &&
+           posY < canvas.height - 10){
+
+            ctx.beginPath();
+
+            ctx.arc(
+                posX,
+                posY,
+                4,
+                0,
+                Math.PI * 2
+            );
+
+            ctx.fillStyle = "green";
+            ctx.fill();
+        }
+    }
+}
+
+}
+
+</script>
+
+</body>
+</html>
+
