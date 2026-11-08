@@ -1,0 +1,611 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulación de Lote de Banano</title>
+
+<style>
+body{
+font-family:Arial,sans-serif;
+margin:0;
+background:#f4f7f5;
+color:#222;
+}
+
+header{
+background:#1f7a3f;
+color:white;
+padding:20px;
+text-align:center;
+}
+
+main{
+max-width:1100px;
+margin:auto;
+padding:15px;
+}
+
+.card{
+background:white;
+padding:15px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+margin-bottom:15px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:10px;
+}
+
+label{
+display:block;
+font-weight:bold;
+margin-bottom:3px;
+}
+
+input{
+width:100%;
+padding:8px;
+box-sizing:border-box;
+}
+
+button{
+padding:10px 15px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
+}
+
+.verde{
+background:#1f7a3f;
+color:white;
+}
+
+.gris{
+background:#ddd;
+}
+
+.resultado{
+background:#e8f5ec;
+padding:12px;
+border-radius:10px;
+}
+
+.resultado strong{
+display:block;
+font-size:1.1rem;
+}
+
+canvas{
+width:100%;
+border:1px solid #ccc;
+border-radius:10px;
+background:white;
+}
+
+canvas{
+max-width:100%;
+}
+
+.ok{
+background:#dff5df;
+}
+
+.error{
+background:#fde2e2;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>Simulación de Optimización de Lote de Banano</h1>
+<p>Modelo algebraico: 2x + y = P</p>
+</header>
+
+<main>
+
+<div class="card">
+
+<h2>Datos</h2>
+
+<div class="grid">
+
+<div>
+<label>Cerca disponible P (m)</label>
+<input id="cercaP" type="number" value="400">
+</div>
+
+<div>
+<label>Área meta 1 (ha)</label>
+<input id="area1" type="number" value="1.8">
+</div>
+
+<div>
+<label>Área meta 2 (ha)</label>
+<input id="area2" type="number" value="2.2">
+</div>
+
+<div>
+<label>Precio A (COP/m)</label>
+<input id="precioA" type="number" value="18500">
+</div>
+
+<div>
+<label>Fijo A (COP)</label>
+<input id="fijoA" type="number" value="1200000">
+</div>
+
+<div>
+<label>Precio B (COP/m)</label>
+<input id="precioB" type="number" value="35000">
+</div>
+
+<div>
+<label>Fijo B (COP)</label>
+<input id="fijoB" type="number" value="2000000">
+</div>
+
+<div>
+<label>Marco siembra (m)</label>
+<input id="marco" type="number" value="2.5">
+</div>
+
+</div>
+
+<br>
+
+<label>
+Ancho x:
+<span id="etiquetaX">100</span> m
+</label>
+
+<input id="sliderX"
+type="range"
+min="1"
+max="199"
+step="0.1"
+value="100">
+
+<br><br>
+
+<button class="verde"
+onclick="calcularTodo()">
+Calcular
+</button>
+
+<button class="gris"
+onclick="reiniciar()">
+Reiniciar
+</button>
+
+</div>
+
+<div class="card">
+
+<h2>Resultados</h2>
+
+<div class="grid">
+
+<div class="resultado">
+Ancho óptimo
+<strong id="resAncho">-</strong>
+</div>
+
+<div class="resultado">
+Largo óptimo
+<strong id="resLargo">-</strong>
+</div>
+
+<div class="resultado">
+Área máxima
+<strong id="resArea">-</strong>
+</div>
+
+<div class="resultado">
+Plantas
+<strong id="resPlantas">-</strong>
+</div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Simulación Actual</h2>
+
+<div class="resultado">
+<strong id="actualArea">-</strong>
+<div id="actualTexto"></div>
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Costos</h2>
+
+<div class="grid">
+
+<div class="resultado">
+Opción A
+<strong id="costoA"></strong>
+</div>
+
+<div class="resultado">
+Opción B
+<strong id="costoB"></strong>
+</div>
+
+<div class="resultado">
+Diferencia
+<strong id="difCosto"></strong>
+<div id="porcentajeCosto"></div>
+</div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Discriminante</h2>
+
+<div class="grid">
+
+<div id="meta1Card" class="resultado">
+<strong id="meta1Titulo"></strong>
+<div id="meta1Detalle"></div>
+</div>
+
+<div id="meta2Card" class="resultado">
+<strong id="meta2Titulo"></strong>
+<div id="meta2Detalle"></div>
+</div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Área A(x)</h2>
+
+<canvas
+id="parabolaCanvas"
+width="700"
+height="350">
+</canvas>
+
+</div>
+
+</main>
+
+<script>
+
+const $ = id => document.getElementById(id);
+
+function fmt(n,d=2){
+return Number(n).toLocaleString(
+"es-CO",
+{
+minimumFractionDigits:d,
+maximumFractionDigits:d
+});
+}
+
+function money(n){
+return "$"+Math.round(n)
+.toLocaleString("es-CO");
+}
+
+function ha(m2){
+return m2/10000;
+}
+
+function leer(){
+
+return{
+P:Math.max(1,parseFloat($("cercaP").value)||400),
+a1:Math.max(0.01,parseFloat($("area1").value)||1.8),
+a2:Math.max(0.01,parseFloat($("area2").value)||2.2),
+pA:Math.max(0,parseFloat($("precioA").value)||18500),
+fA:Math.max(0,parseFloat($("fijoA").value)||1200000),
+pB:Math.max(0,parseFloat($("precioB").value)||35000),
+fB:Math.max(0,parseFloat($("fijoB").value)||2000000),
+marco:Math.max(0.1,parseFloat($("marco").value)||2.5)
+};
+
+}
+
+function optimo(P){
+
+return{
+x:P/4,
+y:P/2,
+area:(P*P)/8
+};
+
+}
+
+function areaConX(P,x){
+
+const y=Math.max(0,P-2*x);
+
+return{
+y:y,
+area:Math.max(0,x*y)
+};
+
+}
+
+function evaluarMeta(P,areaHa){
+
+const areaM2=areaHa*10000;
+
+let delta=(P*P)/4-2*areaM2;
+
+if(Math.abs(delta)<1e-10){
+delta=0;
+}
+
+const factible=delta>=0;
+
+let x1=null;
+let x2=null;
+
+if(factible){
+
+const r=Math.sqrt(delta);
+
+x1=(P/2-r)/2;
+x2=(P/2+r)/2;
+
+}
+
+return{
+delta,
+factible,
+areaHa,
+areaM2,
+x1,
+x2
+};
+
+}
+
+function pintarMeta(id,m){
+
+$(id+"Titulo").innerHTML=
+fmt(m.areaHa)+" ha";
+
+if(m.factible){
+
+$(id+"Card").className="resultado ok";
+
+$(id+"Detalle").innerHTML=
+"✅ Alcanzable<br>Δ = "+
+fmt(m.delta);
+
+}else{
+
+$(id+"Card").className="resultado error";
+
+$(id+"Detalle").innerHTML=
+"❌ Inalcanzable<br>Δ = "+
+fmt(m.delta);
+
+}
+
+}
+
+function dibujarParabola(P,xActual,opt){
+
+const c=$("parabolaCanvas");
+const ctx=c.getContext("2d");
+
+ctx.clearRect(0,0,c.width,c.height);
+
+const xMax=P/2;
+const areaMax=opt.area;
+
+ctx.beginPath();
+
+for(let i=0;i<=300;i++){
+
+const x=(xMax*i)/300;
+const A=-2*x*x+P*x;
+
+const px=50+(x/xMax)*600;
+const py=300-(A/areaMax)*250;
+
+if(i===0){
+ctx.moveTo(px,py);
+}else{
+ctx.lineTo(px,py);
+}
+
+}
+
+ctx.strokeStyle="#1f7a3f";
+ctx.lineWidth=3;
+ctx.stroke();
+
+const Aact=Math.max(
+0,
+-2*xActual*xActual+P*xActual
+);
+
+ctx.fillStyle="red";
+
+ctx.beginPath();
+ctx.arc(
+50+(opt.x/xMax)*600,
+300-(opt.area/areaMax)*250,
+6,0,Math.PI*2
+);
+ctx.fill();
+
+ctx.fillStyle="blue";
+
+ctx.beginPath();
+ctx.arc(
+50+(xActual/xMax)*600,
+300-(Aact/areaMax)*250,
+5,0,Math.PI*2
+);
+ctx.fill();
+
+}
+
+function calcularTodo(){
+
+const d=leer();
+
+const opt=optimo(d.P);
+
+const areaPlanta=d.marco*d.marco;
+
+const plantas=Math.max(
+0,
+Math.floor(opt.area/areaPlanta)
+);
+
+$("resAncho").innerHTML=
+fmt(opt.x)+" m";
+
+$("resLargo").innerHTML=
+fmt(opt.y)+" m";
+
+$("resArea").innerHTML=
+fmt(opt.area)+" m²<br>"+
+fmt(ha(opt.area))+" ha";
+
+$("resPlantas").innerHTML=
+plantas.toLocaleString("es-CO");
+
+const slider=$("sliderX");
+
+slider.max=(d.P/2-0.01);
+
+if(
+parseFloat(slider.value)>=parseFloat(slider.max)
+){
+slider.value=opt.x;
+}
+
+const x=parseFloat(slider.value);
+
+$("etiquetaX").innerHTML=
+fmt(x);
+
+const act=areaConX(d.P,x);
+
+$("actualArea").innerHTML=
+fmt(act.area)+" m²";
+
+$("actualTexto").innerHTML=
+"x="+fmt(x)+
+" m | y="+fmt(act.y)+
+" m | "+
+fmt(ha(act.area))+
+" ha";
+
+const CA=d.P*d.pA+d.fA;
+const CB=d.P*d.pB+d.fB;
+
+$("costoA").innerHTML=
+money(CA);
+
+$("costoB").innerHTML=
+money(CB);
+
+const dif=Math.abs(CA-CB);
+
+$("difCosto").innerHTML=
+money(dif);
+
+let porc=0;
+
+if(CA<CB){
+porc=((CB-CA)/CB)*100;
+$("porcentajeCosto").innerHTML=
+"Opción A es "+
+fmt(porc)+"% más económica";
+}
+else if(CB<CA){
+porc=((CA-CB)/CA)*100;
+$("porcentajeCosto").innerHTML=
+"Opción B es "+
+fmt(porc)+"% más económica";
+}
+else{
+$("porcentajeCosto").innerHTML=
+"Mismo costo";
+}
+
+pintarMeta("meta1",evaluarMeta(d.P,d.a1));
+pintarMeta("meta2",evaluarMeta(d.P,d.a2));
+
+dibujarParabola(
+d.P,
+x,
+opt
+);
+
+}
+
+$("sliderX").addEventListener(
+"input",
+calcularTodo
+);
+
+[
+"cercaP",
+"area1",
+"area2",
+"precioA",
+"fijoA",
+"precioB",
+"fijoB",
+"marco"
+].forEach(id=>{
+
+$(id).addEventListener(
+"input",
+calcularTodo
+);
+
+});
+
+function reiniciar(){
+
+$("cercaP").value=400;
+$("area1").value=1.8;
+$("area2").value=2.2;
+$("precioA").value=18500;
+$("fijoA").value=1200000;
+$("precioB").value=35000;
+$("fijoB").value=2000000;
+$("marco").value=2.5;
+
+$("sliderX").value=100;
+
+calcularTodo();
+
+}
+
+calcularTodo();
+
+</script>
+
+</body>
+</html>
+
